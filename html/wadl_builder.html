@@ -1,0 +1,164 @@
+<!DOCTYPE HTML>
+<html xmlns:ng="http://angularjs.org">
+<head>
+    <script type="text/javascript"
+            src="http://angularjs.org/ng/js/angular-debug.js" ng:autobind></script>
+</head>
+<body>
+
+<script>
+    angular.filter.required = function(req) {
+        return req == 'required';
+    };
+
+    angular.filter.auth_required = function(req) {
+        return req == 'auth_required';
+    };
+
+    function APIDescription() {
+        this.api = {
+            host: "api.twitter.com",
+            resources: [
+                {resource_name: 'public timeline', resource_path: '/v1/statuses/public_timeline.json', http_verb: 'GET',
+                    parameters: [
+                        {name: 'trim_user', type: 'boolean', required: 'optional', value: 'true', type: 'query'},
+                        {name: 'include_entities', type: 'boolean', required: 'optional', value: 'true', type: 'query'}
+                    ],
+                    tags: [
+                        { tag: 'Timeline', primary: true},
+                        { tag: 'Status', primary: false}
+                    ],
+                    docs: 'http://apiwiki.twitter.com/Twitter-REST-API-Method%3A-statuses-public_timeline',
+                    example_url: '/statuses/public_timeline.json',
+                    notes: 'Returns the 20 most recent statuses from non-protected users who have set a custom user icon. <a href="http://groups.google.com/group/twitter-development-talk/browse_thread/thread/f881564598a947a7#">The public timeline is cached for 60 seconds</a> so requesting it more often than that is a waste of resources.',
+                    auth_required: 'no_auth'}
+            ]
+        };
+    }
+
+    APIDescription.prototype = {
+        reset: function() {
+            alert(localStorage.getItem('API_Description'));
+            this.api = angular.fromJson(localStorage.getItem('API_Description'));
+        },
+        save: function() {
+            alert('SAVED: ' + angular.toJson(this.api));
+            localStorage.setItem('API_Description', angular.toJson(this.api));
+        }
+    };
+</script>
+<div ng:controller="APIDescription">
+
+    <label>API Host:</label>
+    <input type="text" name="api.host" ng:required/> <br/><br/>
+
+    <label>Resources:</label>
+    [ <a href=""
+         ng:click="api.resources.$add({resource_name: 'resource name', resource_path: '/path/to/resource', http_verb: 'GET', parameters: [{name: 'name', type: 'boolean', optional: 'optional', value: 'value', type: 'query'}], tags: [
+                        { tag: 'Primary Tag', primary: true},
+                        { tag: 'Secondary Tag', primary: false}
+                    ],
+                    docs: 'docs url',
+                    example_url: 'example url',
+                    notes: 'Notes',
+auth_required: 'no_auth'})">Add
+    Resource</a> ]
+    <br/><label>------------------------------------------------------------------------------------------------</label>
+
+    <div ng:repeat="resource in api.resources">
+        <select name="resource.http_verb">
+            <option>GET</option>
+            <option>POST</option>
+            <option>PUT</option>
+            <option>DELETE</option>
+            <option>HEAD</option>
+        </select>
+        <input type="text" name="resource.resource_name" value="resource name" ng:required/>
+        <input type="text" name="resource.resource_path" value="/path/to/resource" ng:required/>
+        <select name="resource.auth_required">
+            <option>auth_required</option>
+            <option>no_auth</option>
+        </select>
+        <br/>
+
+        <br/>[ <a href="" ng:click="resource.parameters.$add()">Add Parameter</a> ]
+        <div ng:repeat="param in resource.parameters">
+            <label>Parameter:</label>
+            <select name="param.type">
+                <option>query</option>
+                <option>header</option>
+            </select>
+
+            <input type="text" name="param.name" value="name" ng:required/>
+            <input type="text" name="param.value" value="value" ng:required/>
+            <select name="param.required">
+                <option>required</option>
+                <option>optional</option>
+            </select>
+            [ <a href="" ng:click="resource.parameters.$remove(param)">X</a> ]
+            [ <a href="" ng:click="resource.parameters.$add(param.$copy())">Copy</a> ]
+        </div>
+        <br/><label>Apigee extensions:</label>
+        [ <a href="" ng:click="resource.tags.$add()">Add tag</a> ]
+        <div ng:repeat="tag in resource.tags">
+            <label>tag:</label>
+            <input type="text" name="tag.tag" value="tag" ng:required/>
+            <input type="checkbox" name="tag.primary" value="false" ng:required/>
+            [ <a href="" ng:click="resource.tags.$remove(tag)">X</a> ]
+            [ <a href="" ng:click="resource.tags.$add(angular.copy(tag))">Copy</a> ]
+        </div>
+        <label>Docs url:</label><input type="text" name="resource.docs" value="docs url here" ng:required/><br/>
+        <label>Notes:</label><input type="text" name="resource.notes" value="describe resource here" ng:required/><br/>
+        <label>Example url:</label><input type="text" name="resource.example_url" value="example url here" ng:required/><br/>
+        <label>
+            ------------------------------------------------------------------------------------------------
+            [ <a href="" ng:click="api.resources.$add(resource.$copy())">Copy Resource</a> ]
+            [ <a href="" ng:click="api.resources.$remove(resource)">Remove Resource</a> ]
+        </label>
+    </div>
+    <button ng:click="save()">Save</button>
+    <button ng:click="reset()">Reset</button>
+
+    <label>WADL</label><br/>
+    <label>
+
+        &lt;application xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; xmlns:xsd=&quot;http://www.w3.org/2001/XMLSchema&quot;
+        xsi:schemaLocation=&quot;http://research.sun.com/wadl/2006/10 https://wadl.dev.java.net/wadl20061109.xsd&quot;
+        xmlns=&quot;http://research.sun.com/wadl/2006/10&quot;&gt;<br/>
+
+        &lt;resources base=&quot;{{api.host}}&quot;&gt;<br/>
+
+        <label ng:repeat="resource in api.resources">
+
+            &lt;resource path=&quot;{{resource.resource_path}}&quot;&gt;<br/>
+
+            <label ng:repeat="param in resource.parameters">
+                &lt;param name=&quot;{{param.name}}&quot; required=&quot;{{param.required|required}}&quot; type=&quot;xsd:string&quot;
+                style=&quot;{{param.type}}&quot; default=&quot;{{param.value}}&quot;/&gt;<br/>
+            </label>
+            &lt;method name=&quot;{{resource.http_verb}}&quot; id=&quot;{{resource.resource_name}}&quot;&gt;<br/>
+            &lt;tags&gt;<br/>
+            <label ng:repeat="tag in resource.tags">
+                &lt;tag primary=&quot;{{tag.primary}}&quot;&gt;{{tag.tag}}&lt;/tag&gt;<br/>
+            </label>
+            &lt;/tags&gt;<br/>
+            &lt;authentication required=&quot;{{resource.auth_required|auth_required}}&quot;/&gt;<br/>
+            &lt;docs url=&quot;{{resource.docs}}&gt;<br/>
+            &lt;example url=&quot;{{resource.example_url}}&quot;/&gt;<br/>
+            &lt;notes&gt;{{resource.notes}}&lt;/notes&gt;<br/>
+            &lt;/method&gt;<br/>
+            &lt;/resource&gt;<br/>
+
+        </label>
+
+        &lt;/resources&gt;<br/>
+        &lt;/application&gt;<br/>
+    </label>
+    <hr/>
+    <!--Debug View:
+<pre>form={{api}}
+master={{master}}</pre>-->
+</div>
+
+</body>
+</html>

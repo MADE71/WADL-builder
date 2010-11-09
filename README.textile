@@ -1,0 +1,5 @@
+Just open the wadl_builder.html in the browser and start building your WADL.
+
+I should appreciate "angularjs":http://angularjs.org framework folks for their awesome work, without which this project wouldn't have been there.
+
+NOTE: This is just the first cut for the WADL builder, i am working on to get some more awesome features
