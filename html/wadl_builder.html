@@ -7,6 +7,43 @@
 <body>
 
 <script>
+    // parseUri 1.2.2
+    // (c) Steven Levithan <stevenlevithan.com>
+    // MIT License
+
+    function parseUri(str) {
+        var o = parseUri.options,
+                m = o.parser[o.strictMode ? "strict" : "loose"].exec(str),
+                uri = {},
+                i = 14;
+
+        while (i--) uri[o.key[i]] = m[i] || "";
+
+        uri[o.q.name] = {};
+        uri[o.key[12]].replace(o.q.parser, function ($0, $1, $2) {
+            if ($1) uri[o.q.name][$1] = $2;
+        });
+
+        return uri;
+    }
+    ;
+
+    parseUri.options = {
+        strictMode: false,
+        key: ["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],
+        q:   {
+            name:   "queryKey",
+            parser: /(?:^|&)([^&=]*)=?([^&]*)/g
+        },
+        parser: {
+            strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
+            loose:  /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
+        }
+    };
+
+    // parseUri end
+
+
     angular.filter.required = function(req) {
         return req == 'required';
     };
@@ -34,6 +71,20 @@
                     auth_required: 'no_auth'}
             ]
         };
+
+        // DONT MODIFY THE TEMPLATE DIRECTLY, ALWAYS TAKE A COPY
+        this.resource_template = {resource_name: 'resource name', resource_path: '/resource/path', http_verb: 'GET',
+            parameters: [
+                {name: 'param_name', type: 'string', required: 'optional', value: 'value', type: 'query'}
+            ],
+            tags: [
+                { tag: 'Default', primary: true},
+                { tag: 'Test', primary: false}
+            ],
+            docs: 'http://docs.url',
+            example_url: '/resource/path',
+            notes: 'Notes here',
+            auth_required: 'no_auth'};
     }
 
     APIDescription.prototype = {
@@ -44,11 +95,39 @@
         save: function() {
             alert('SAVED: ' + angular.toJson(this.api));
             localStorage.setItem('API_Description', angular.toJson(this.api));
+        },
+        buildWADLFromBunchOfUrls: function(bunchOfUrls) {
+            this.api.resources = [];
+            var lines = bunchOfUrls.split("\n");
+            for (var i = 0; i < lines.length; i++) {
+                try {
+                    var parts = lines[i].split(" ");
+                    var parsedUri = parseUri(parts[1]);
+                    this.api.host = parsedUri.host;
+                    var resource = angular.copy(this.resource_template);
+                    resource.resource_name = parsedUri.path;
+                    resource.resource_path = parsedUri.path;
+                    resource.http_verb = parts[0].toUpperCase();
+                    this.api.resources[this.api.resources.length + 1] = resource;
+                } catch(e) {
+                    alert('Error' + e);
+                }
+            }
         }
+
     };
 </script>
 <div ng:controller="APIDescription">
-
+    <input type="checkbox" name="build_wadl_from_urls">Build your WADL from bunch of urls like
+    <span ng:show="build_wadl_from_urls">
+        <br/><textarea name="bunchOfUrls" cols="100" rows="5"></textarea><br/>
+        <input type="button" value="Build API Model" ng:click="buildWADLFromBunchOfUrls(bunchOfUrls)">
+    </span> <br/>
+    <span ng:hide="build_wadl_from_urls">    GET http://api.twitter.com/statuses/public_timeline.json<br/>
+    GET http://api.twitter.com/statuses/home_timeline.json<br/>
+    </span> <br/>
+    <HR/>
+    <h3 align="center">API Model</h3>
     <label>API Host:</label>
     <input type="text" name="api.host" ng:required/> <br/><br/>
 
@@ -118,8 +197,8 @@ auth_required: 'no_auth'})">Add
     </div>
     <button ng:click="save()">Save</button>
     <button ng:click="reset()">Reset</button>
-
-    <label>WADL</label><br/>
+    <HR/>
+    <label><h3 align="center">WADL</h3></label><br/>
     <label>
 
         &lt;application xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; xmlns:xsd=&quot;http://www.w3.org/2001/XMLSchema&quot;
