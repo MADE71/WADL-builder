@@ -108,6 +108,18 @@
                     resource.resource_name = parsedUri.path;
                     resource.resource_path = parsedUri.path;
                     resource.http_verb = parts[0].toUpperCase();
+
+                    var params = parsedUri.queryKey;
+                    resource.parameters = [];
+                    for (var prop in params) {
+                        var param = {};
+                        param.name = prop;
+                        param.type = 'string';
+                        param.required = 'optional';
+                        param.value = params[prop];
+                        param.type = 'query';
+                        resource.parameters[resource.parameters.length + 1] = param;
+                    }
                     this.api.resources[this.api.resources.length + 1] = resource;
                 } catch(e) {
                     alert('Error' + e);
@@ -124,7 +136,7 @@
         <input type="button" value="Build API Model" ng:click="buildWADLFromBunchOfUrls(bunchOfUrls)">
     </span> <br/>
     <span ng:hide="build_wadl_from_urls">    GET http://api.twitter.com/statuses/public_timeline.json<br/>
-    GET http://api.twitter.com/statuses/home_timeline.json<br/>
+    GET http://api.twitter.com/statuses/home_timeline.json?trim_user=true&include_entities=true<br/>
     </span> <br/>
     <HR/>
     <h3 align="center">API Model</h3>
@@ -142,7 +154,7 @@
                     notes: 'Notes',
 auth_required: 'no_auth'})">Add
     Resource</a> ]
-    <br/><label>------------------------------------------------------------------------------------------------</label>
+    <br/><label><<------------------------------------------------------------------------------------------------</label>
 
     <div ng:repeat="resource in api.resources">
         <select name="resource.http_verb">
@@ -178,6 +190,8 @@ auth_required: 'no_auth'})">Add
             [ <a href="" ng:click="resource.parameters.$add(param.$copy())">Copy</a> ]
         </div>
         <br/><label>Apigee extensions:</label>
+        <input type="checkbox" name="enable_apigee_extensions">
+        <span ng:show="enable_apigee_extensions">
         [ <a href="" ng:click="resource.tags.$add()">Add tag</a> ]
         <div ng:repeat="tag in resource.tags">
             <label>tag:</label>
@@ -186,13 +200,15 @@ auth_required: 'no_auth'})">Add
             [ <a href="" ng:click="resource.tags.$remove(tag)">X</a> ]
             [ <a href="" ng:click="resource.tags.$add(angular.copy(tag))">Copy</a> ]
         </div>
-        <label>Docs url:</label><input type="text" name="resource.docs" value="docs url here" ng:required/><br/>
         <label>Notes:</label><input type="text" name="resource.notes" value="describe resource here" ng:required/><br/>
+        <label>Docs url:</label><input type="text" name="resource.docs" value="docs url here" ng:required/><br/>
         <label>Example url:</label><input type="text" name="resource.example_url" value="example url here" ng:required/><br/>
-        <label>
-            ------------------------------------------------------------------------------------------------
-            [ <a href="" ng:click="api.resources.$add(resource.$copy())">Copy Resource</a> ]
-            [ <a href="" ng:click="api.resources.$remove(resource)">Remove Resource</a> ]
+        </span>
+        <span ng:hide="enable_apigee_extensions"></span>
+        <br/><label>
+            ------------------------------------------------------------------------------------------------>>
+            [ <a href="" ng:click="api.resources.$remove(resource)">X</a> ]
+            [ <a href="" ng:click="api.resources.$add(resource.$copy())">Copy</a> ]
         </label>
     </div>
     <button ng:click="save()">Save</button>
