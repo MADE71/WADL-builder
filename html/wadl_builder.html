@@ -57,6 +57,31 @@
     };
 
     function APIDescription() {
+        this.master = {
+            baseUrl: "http://api.twitter.com/v1",
+            resources: [
+                {
+                    resource_name: 'public timeline',
+                    resource_path: '/statuses/public_timeline.json',
+                    httpMethod: 'GET',
+                    parameters: [
+                        {name: 'trim_user', required: 'false', parameterType: 'query'},
+                        {name: 'include_entities', required: 'false', parameterType: 'query'}
+                    ],
+                    tags: [
+                        { tag: 'Timeline', primary: true},
+                        { tag: 'Status', primary: false}
+                    ],
+                    docs: 'http://apiwiki.twitter.com/Twitter-REST-API-Method%3A-statuses-public_timeline',
+                    example_urls: ['/statuses/public_timeline.json'],
+                    notes: 'Returns the 20 most recent statuses from non-protected users who have set a custom user icon. <a href="http://groups.google.com/group/twitter-development-talk/browse_thread/thread/f881564598a947a7#">The public timeline is cached for 60 seconds</a> so requesting it more often than that is a waste of resources.',
+                    auth_required: 'no_auth',
+                    show: true
+                }
+            ]
+        };
+        this.cancel();        
+/*
         this.apiModel = {
             baseUrl: "http://api.twitter.com/v1",
             resources: [
@@ -73,12 +98,13 @@
                         { tag: 'Status', primary: false}
                     ],
                     docs: 'http://apiwiki.twitter.com/Twitter-REST-API-Method%3A-statuses-public_timeline',
-                    example_url: '/statuses/public_timeline.json',
+                    example_urls: ['/statuses/public_timeline.json'],
                     notes: 'Returns the 20 most recent statuses from non-protected users who have set a custom user icon. <a href="http://groups.google.com/group/twitter-development-talk/browse_thread/thread/f881564598a947a7#">The public timeline is cached for 60 seconds</a> so requesting it more often than that is a waste of resources.',
                     auth_required: 'no_auth'
                 }
             ]
         };
+*/
 
         // DONT MODIFY THE TEMPLATE DIRECTLY, ALWAYS TAKE A COPY
         this.api_model_template = {
@@ -94,12 +120,16 @@
             parameters: [],
             tags: [],
             docs: null,
-            example_url: null,
-            notes: null
+            example_urls: [],
+            notes: null,
+            show: true
         };
     }
 
     APIDescription.prototype = {
+        cancel: function() {
+            this.apiModel = angular.copy(this.master);
+        },
         reset: function() {
             alert(localStorage.getItem('API_Description'));
             this.apiModel = angular.fromJson(localStorage.getItem('API_Description'));
@@ -126,6 +156,7 @@
                     resource.resource_path = parsedUri.path;
                     resource.httpMethod = parsedLine.httpMethod.toUpperCase();
                     resource.auth_required = 'no_auth';
+                    resource.example_urls.push(parsedUri.source);
                     var queryParameters = parsedUri.queryKey;
                     resource.parameters = [];
                     for (var queryParam in queryParameters) {
@@ -187,30 +218,19 @@
             }
         }        
     };
+    function testalert(source) {
+        source.resource.show = !source.resource.show;
+    };
 </script>
 <div ng:controller="APIDescription">
-    <input type="checkbox" name="build_wadl_from_urls">Build your WADL from bunch of urls like
-    <span ng:show="build_wadl_from_urls">
-        <br/><textarea name="bunchOfUrls" cols="100" rows="5"></textarea><br/>
-        <input type="button" value="Build API Model" ng:click="buildWADLFromBunchOfUrls(bunchOfUrls)">
-    </span> <br/>
-    <span ng:hide="build_wadl_from_urls">    GET http://api.twitter.com/statuses/public_timeline.json<br/>
-    GET http://api.twitter.com/statuses/home_timeline.json?trim_user=true&include_entities=true<br/>
-    </span> <br/>
-    <HR/>
-
-    <input type="checkbox" name="build_wadl_from_google_json">Build your WADL from Google's json api desc
-    http://www.googleapis.com/discovery/0.1/describe?api=latitude
-    <span ng:show="build_wadl_from_google_json">
-        <br/><textarea name="googleJSON" cols="100" rows="5"></textarea><br/>
-        <input type="button" value="Build API Model" ng:click="buildWADLFromGoogleSMD(googleJSON)">
-    </span> <br/>
-    <span ng:hide="build_wadl_from_google_json">    Google api desc <br/>
-    </span> <br/>
-    <HR/>
+    <span style="float: right;">
+    <button ng:click="cancel()" disabled="{{master.$equals(apiModel)}}">Cancel</button>
+    <button ng:click="save()" disabled="{{$invalidWidgets.visible() || master.$equals(apiModel)}}">Save</button>
+    </span>
     <h3 align="center">API Model</h3>
-    <label>API base url:</label>
-    <input type="text" name="apiModel.baseUrl"/> <br/><br/>
+    <br/>
+    <label>API Base URL:</label>
+    <input size="40" type="text" name="apiModel.baseUrl"/> <br/><br/>
 
     <label>Resources:</label>
     [ <a href=""
@@ -218,7 +238,12 @@
     <br/>
 
     <div ng:repeat="resource in apiModel.resources">
-        <label><<------------------------------------------------------------------------------------------------</label>
+        <label ng:click="$window.testalert(this)"><i>{{resource.httpMethod}} {{apiModel.baseUrl}}{{resource.resource_path}}</i> &nbsp
+            <b><a href="" ng:show="resource.show">[-]</a><a href="" ng:hide="resource.show">[+]</a></b>
+            [ <a href="" ng:click="apiModel.resources.$remove(resource)">X</a> ]
+            [ <a href="" ng:click="apiModel.resources.$add(resource.$copy())">Copy</a> ]
+        </label>
+        <div ng:show="resource.show">
         <br/>
         <select name="resource.httpMethod">
             <option>GET</option>
@@ -228,7 +253,7 @@
             <option>HEAD</option>
         </select>
         <input type="text" name="resource.resource_name" ng:required/>
-        <input type="text" name="resource.resource_path" ng:required/>
+        <input type="text" size="40" name="resource.resource_path" ng:required/>
         <select name="resource.auth_required">
             <option>no_auth</option>
             <option>auth_required</option>
@@ -261,21 +286,54 @@
             [ <a href="" ng:click="resource.tags.$remove(tag)">X</a> ]
             [ <a href="" ng:click="resource.tags.$add(angular.copy(tag))">Copy</a> ]
         </div>
-        <label>Notes:</label><input type="text" name="resource.notes" value="describe resource here" ng:required/><br/>
-        <label>Docs url:</label><input type="text" name="resource.docs" value="docs url here" ng:required/><br/>
-        <label>Example url:</label><input type="text" name="resource.example_url" value="example url here" ng:required/><br/>
+        <br/><label>Docs url:</label><input type="text" size="60" name="resource.docs" value="docs url here"/><br/>
+            <div ng:repeat="url in resource.example_urls">
+                <label>Example:</label><input type="text" size="60" name="url" value="example url here" ng:required/>[ <a href="" ng:click="resource.example_urls.$remove(url)">X</a> ][ <a href="" ng:click="resource.example_urls.$add(url)">Copy</a> ]<br/>
+            </div>
+            <br/>
+            <label>Notes:</label><br/><textarea type="text" name="resource.notes" value="describe resource here" cols="100" rows="5"></textarea><br/>
         </span>
+
         <span ng:hide="enable_apigee_extensions"></span>
         <br/><label>
         ------------------------------------------------------------------------------------------------>>
-        [ <a href="" ng:click="apiModel.resources.$remove(resource)">X</a> ]
-        [ <a href="" ng:click="apiModel.resources.$add(resource.$copy())">Copy</a> ]
+        <span style="float: right;">
+        <button ng:click="cancel()" disabled="{{master.$equals(apiModel)}}">Cancel</button>
+        <button ng:click="save()" disabled="{{$invalidWidgets.visible() || master.$equals(apiModel)}}">Save</button>
+        </span>
     </label>
+        </div>
     </div>
+    <br/><br/><br/>
+    <HR/> <HR/><HR/>
+    <input type="checkbox" name="build_wadl_from_urls">Build your WADL from bunch of urls like
+    <span ng:show="build_wadl_from_urls">
+        <br/><textarea name="bunchOfUrls" cols="100" rows="5"></textarea><br/>
+        <input type="button" value="Build API Model" ng:click="buildWADLFromBunchOfUrls(bunchOfUrls)">
+    </span> <br/>
+    <span ng:hide="build_wadl_from_urls">    GET http://api.twitter.com/statuses/public_timeline.json<br/>
+    GET http://api.twitter.com/statuses/home_timeline.json?trim_user=true&include_entities=true<br/>
+    </span> <br/>
+    <HR/>
+
+    <input type="checkbox" name="build_wadl_from_google_json">Build your WADL from Google's json api desc
+    http://www.googleapis.com/discovery/0.1/describe?api=latitude
+    <span ng:show="build_wadl_from_google_json">
+        <br/><textarea name="googleJSON" cols="100" rows="5"></textarea><br/>
+        <input type="button" value="Build API Model" ng:click="buildWADLFromGoogleSMD(googleJSON)">
+    </span> <br/>
+    <span ng:hide="build_wadl_from_google_json">    Google api desc <br/>
+    </span> <br/>
+    <HR/>
+    
+<!--
     <button ng:click="save()">Save</button>
     <button ng:click="reset()">Reset</button>
+-->
     <HR/>
+    <span>
     <label><h3 align="center">WADL</h3></label><br/>
+
     <label>
 
         &lt;application xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; xmlns:xsd=&quot;http://www.w3.org/2001/XMLSchema&quot;
@@ -300,7 +358,9 @@
             &lt;/tags&gt;<br/>
             &lt;authentication required=&quot;{{resource.auth_required|auth_required}}&quot;/&gt;<br/>
             &lt;docs url=&quot;{{resource.docs}}&gt;<br/>
-            &lt;example url=&quot;{{resource.example_url}}&quot;/&gt;<br/>
+            <label ng:repeat="url in resource.example_urls">
+            &lt;example url=&quot;{{url}}&quot;/&gt;<br/>
+            </label>    
             &lt;notes&gt;{{resource.notes}}&lt;/notes&gt;<br/>
             &lt;/method&gt;<br/>
             &lt;/resource&gt;<br/>
@@ -310,6 +370,7 @@
         &lt;/resources&gt;<br/>
         &lt;/application&gt;<br/>
     </label>
+        </span>
     <hr/>
 </div>
 </body>
